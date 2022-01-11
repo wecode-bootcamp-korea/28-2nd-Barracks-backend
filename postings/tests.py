@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import json
 
 from django.test     import TestCase, Client
@@ -103,3 +104,25 @@ class PostingDetailTest(TestCase):
             }
         )
         self.assertEqual(response.status_code, 404)
+=======
+from django.test import TestCase
+from users.models import User
+from postings.models import Posting, Image, Size, Space, Residence, Style
+import unittest
+
+# Create your tests here.
+
+class PostingViewTest(unittest.TestCase):
+    def setUp(self):
+        User.objects.create(
+            id = 1,
+            kakao_id          = show3045,
+            email             = joshua.jung0129@gmail.com,
+            nickname          = daydream03,
+            profile_image_url = asdf@asdf.com
+        )
+    def test_post_success(self):
+
+
+    def test_post_key_error(self)
+>>>>>>> a255457 (포스팅 기능 구현 완료)
