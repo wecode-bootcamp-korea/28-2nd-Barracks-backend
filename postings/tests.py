@@ -1,14 +1,125 @@
 import json
-from unittest import result
-from urllib import request
-from wsgiref import headers
 import jwt
+from unittest.mock import patch, MagicMock
 
-from django.test     import TestCase, Client
+from django.test                    import TestCase, Client
+from django.core.files.uploadedfile import SimpleUploadedFile
 
 from postings.models import Posting, Space, Size, Residence, Style, Image, Comment, Like
 from users.models    import User
 from my_settings     import SECRET_KEY, ALGORITHM
+
+class PostingViewTest(TestCase):
+    def setUp(self):
+        User.objects.create(
+            id       = 1,
+            kakao_id = 1135,
+            email    = 'email@email.com',
+            nickname = 'asdf',
+            profile_image_url = 'asdfasdfasdf'
+        )
+
+        Space.objects.create(id=1, name='거실')
+        Size.objects.create(id=1, name='10평')
+        Residence.objects.create(id=1, name='아파트')
+        Style.objects.create(id=1, name='심플')
+
+
+    def tearDown(self):
+        User.objects.all().delete()
+        Posting.objects.all().delete()
+        Space.objects.all().delete()
+        Size.objects.all().delete()
+        Residence.objects.all().delete()
+        Style.objects.all().delete()
+    
+    
+    @patch('core.storages.FileUpload')
+    def test_s3_upload_image_success(self, mocked_client):
+        client = Client()
+        token = jwt.encode({"id" : 1}, SECRET_KEY, ALGORITHM)
+        
+        class MockedResponse():
+            def upload(self, file):
+                return 'https://wecode-barracks.s3.ap-northeast-2.amazonaws.com/033f6f97-0f08-4b6f-a3a4-296a50292f72'
+        
+        files = SimpleUploadedFile(
+            name         = 'test.jpg',
+            content      = b'file_content',
+            content_type = 'image/jpg'
+        )
+
+        mocked_client.return_value = MockedResponse()
+        headers = {'HTTP_Authorization': token, 'content-type' : 'multipart/form-data'}
+        body = {'files'     : files,
+                'space'     : 1,
+                'size'      : 1,
+                'residence' : 1,
+                'style'     : 1,
+                'title'     : 'some title for testing',
+                'tags'      : ['tag1', 'tag2', 'tag3'],
+                'content'   : '무야호~'
+                }
+        response = client.post('/postings', body, **headers)
+        
+        posting = Posting.objects.last()
+        self.assertEqual(response.json(), {'message' : 'CREATE_SUCCESS', 'results' : {'post_id' : posting.id}})
+        self.assertEqual(response.status_code, 201)
+
+    @patch('core.storages.FileUpload')
+    def test_s3_upload_image_excluded_error(self, mocked_client):
+        client = Client()
+        token = jwt.encode({"id" : 1}, SECRET_KEY, ALGORITHM)
+
+        class MockedResponse():
+            def upload(self, files):
+                return None
+
+        files = SimpleUploadedFile(
+            name = 'test.jpg',
+            content = b'file_content',
+            content_type = 'image/jpg'
+        )
+
+        mocked_client.return_value = MockedResponse()
+        headers = {'HTTP_Authorization': token, 'content-type' : 'multipart/form-data'}
+        body = {
+                'space'     : 1,
+                'size'      : 1,
+                'residence' : 1,
+                'style'     : 1,
+                'title'     : 'some title for testing',
+                'tags'      : ['tag1', 'tag2', 'tag3'],
+                'content'   : '무야호~'
+        }
+        response = client.post('/postings', body, **headers)
+
+        self.assertEqual(response.json(), {'message' : 'IMAGE_REQUIRED'})
+        self.assertEqual(response.status_code, 400)
+
+    @patch('core.storages.FileUpload')
+    def test_s3_upload_image_key_error(self, mocked_client):
+        client = Client()
+        token = jwt.encode({"id" : 1}, SECRET_KEY, ALGORITHM)
+
+        class MockedResponse():
+            def upload(self, files):
+                return None
+
+        files = SimpleUploadedFile(
+            name         = 'test.jpg',
+            content      = b'file_content',
+            content_type = 'image/jpg'
+            )
+
+
+        mocked_client.return_value = MockedResponse()
+        headers = {'HTTP_Authorization': token, 'content-type' : 'multipart/form-data'}
+        body = {'files' : files}
+        response = client.post('/postings', body, **headers)
+
+        self.assertEqual(response.json(), {'message' : 'KEY_ERROR'})
+        self.assertEqual(response.status_code, 400)
 
 class PostingDetailTest(TestCase):
     def setUp(self):
