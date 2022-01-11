@@ -139,3 +139,4 @@ CORS_ALLOW_HEADERS = (
 )
 
 APPEND_SLASH = False
+
