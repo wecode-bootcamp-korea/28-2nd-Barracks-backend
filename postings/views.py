@@ -1,13 +1,16 @@
-from csv import unregister_dialect
 import json
 
-from django.http      import JsonResponse
-from django.views     import View
-from django.db.models import Q
+from django.http           import JsonResponse
+from django.views          import View
+from django.db.models      import Q
+from django.db             import transaction
 
-from postings.models       import Posting, Comment, Like
 from users.models          import User
+from postings.models       import Posting, Image, Size, Space, Residence, Style, Comment, Like
+
 from utils.login_decorator import login_decorator
+from core.storages         import s3_client, FileUpload
+
 
 class PostingListView(View):
     def get(self, request):
@@ -45,7 +48,41 @@ class PostingListView(View):
             return JsonResponse({'results' : results}, status = 200)
         
         except KeyError:
-            return JsonResponse({'message' : "KEY_ERROR"}, status = 400)      
+            return JsonResponse({'message' : "KEY_ERROR"}, status = 400)
+    
+    @login_decorator
+    @transaction.atomic
+    def post(self, request):
+        try:
+            data  = request.POST
+            user  = request.user
+            files = request.FILES.getlist('files')
+          
+            if not files:
+                return JsonResponse({'message' : 'IMAGE_REQUIRED'}, status=400)
+
+            posting = Posting.objects.create(
+                user_id      = user.id,
+                space_id     = data['space'],
+                size_id      = data.get('size', None),
+                residence_id = data.get('residence', None),
+                style_id     = data.get('style', None),
+                title        = data.get('title', None),
+                tags         = data.getlist('tags', None),
+                content      = data.get('content', None),
+            )
+
+            for file in files:
+                image_url = FileUpload(s3_client).upload(file)
+                Image.objects.create(
+                    posting_id = posting.id,
+                    image_url = image_url
+                )
+            
+            return JsonResponse({'message' : 'CREATE_SUCCESS', 'results' : {"post_id" : posting.id}}, status = 201)
+         
+        except KeyError:
+            return JsonResponse({'message' : 'KEY_ERROR'}, status = 400)      
 
 class PostingDeatilView(View):
     def get(self, request, posting_id):
@@ -61,19 +98,20 @@ class PostingDeatilView(View):
                 'posting_id' : posting.id,
                 'title'      : posting.title,
                 'content'    : posting.content,
-                'tags'       : posting.tags.split(',') if posting.tags else None,
-                'size'       : posting.size.name if posting.size else None,
-                'residence'  : posting.residence.name if posting.residence else None,
+                'tags'       : posting.tags.split(','),
+                'size'       : posting.size.name,
+                'residence'  : posting.residence.name,
                 'space'      : posting.space.name,
-                'style'      : posting.style.name if posting.style else None,
+                'style'      : posting.style.name,
                 'hits'       : posting.hits,
                 'like_count' : posting.like_set.all().filter(is_like=True).count(),
                 'image_urls' : images,
                 'user_name'  : user.nickname,
-                'user_image' : user.profile_image_url,
+                'user_image' : user.profile_image_url
             }
-            return JsonResponse({'result' : result}, status=200)
         
+            return JsonResponse({'result' : result}, status=200)
+    
         except Posting.DoesNotExist:
             return JsonResponse({'message' : 'POSTING_DOESNOT_EXIST'}, status=404)
         
