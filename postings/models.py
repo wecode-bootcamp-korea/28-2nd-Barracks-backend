@@ -1,11 +1,8 @@
-from django.db                       import models
-from django.db.models.fields         import BooleanField
-from django.db.models.fields.related import ForeignKey
-
-from core.models                     import TimeStampModel
+from django.db   import models
+from core.models import TimeStampModel
 
 class Posting(TimeStampModel):
-    user      = ForeignKey('users.User', on_delete=models.CASCADE)
+    user      = models.ForeignKey('users.User', on_delete=models.CASCADE)
     name      = models.CharField(max_name=50)
     tags      = models.CharField(max_length=200)
     content   = models.TextField(max_length=1500)
@@ -22,24 +19,24 @@ class Posting(TimeStampModel):
         return self.name
 
 class Like(models.Model):
-    user    = ForeignKey('users.User', on_delete=models.CASCADE)
-    posting = ForeignKey('.Posting', on_delete=models.CASCADE)
-    is_like = BooleanField(null=False)
+    user    = models.ForeignKey('users.User', on_delete=models.CASCADE)
+    posting = models.ForeignKey('.Posting', on_delete=models.CASCADE)
+    is_like = models.BooleanField(null=False)
 
     class Meta:
         db_table = 'likes'
 
 class Comment(TimeStampModel):
-    user    = ForeignKey('users.User', on_delete=models.CASCADE)
-    posting = ForeignKey('.Posting', on_delete=models.CASCADE)
+    user    = models.ForeignKey('users.User', on_delete=models.CASCADE)
+    posting = models.ForeignKey('.Posting', on_delete=models.CASCADE)
     content = models.CharField(max_length=350)
 
     class Meta:
         db_table = 'comments'
 
 class Image(models.Model):
-    posting   = ForeignKey('.Posting', on_delete=models.CASCADE)
-    image_url = models.URLField()
+    posting   = models.ForeignKey('.Posting', on_delete=models.CASCADE)
+    image_url = models.URLField(max_length=2000)
 
     class Meta:
         db_table = 'images'
