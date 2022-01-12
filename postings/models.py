@@ -3,14 +3,14 @@ from core.models import TimeStampModel
 
 class Posting(TimeStampModel):
     user      = models.ForeignKey('users.User', on_delete=models.CASCADE)
-    name      = models.CharField(max_name=50)
+    name      = models.CharField(max_length=50)
     tags      = models.CharField(max_length=200)
     content   = models.TextField(max_length=1500)
     hits      = models.IntegerField(default=0)
-    size      = models.ForeignKey('.Size', on_delete=models.SET_NULL, null=True)
-    residence = models.ForeignKey('.Residence', on_delete=models.SET_NULL, null=True)
-    space     = models.ForeignKey('.Space', on_delete=models.CASCADE)
-    style     = models.ForeignKey('.Style', on_delete=models.SET_NULL, null=True)
+    size      = models.ForeignKey('postings.Size', on_delete=models.SET_NULL, null=True)
+    residence = models.ForeignKey('postings.Residence', on_delete=models.SET_NULL, null=True)
+    space     = models.ForeignKey('postings.Space', on_delete=models.CASCADE)
+    style     = models.ForeignKey('postings.Style', on_delete=models.SET_NULL, null=True)
 
     class Meta:
         db_table = 'postings'
@@ -20,7 +20,7 @@ class Posting(TimeStampModel):
 
 class Like(models.Model):
     user    = models.ForeignKey('users.User', on_delete=models.CASCADE)
-    posting = models.ForeignKey('.Posting', on_delete=models.CASCADE)
+    posting = models.ForeignKey('postings.Posting', on_delete=models.CASCADE)
     is_like = models.BooleanField(null=False)
 
     class Meta:
@@ -28,14 +28,14 @@ class Like(models.Model):
 
 class Comment(TimeStampModel):
     user    = models.ForeignKey('users.User', on_delete=models.CASCADE)
-    posting = models.ForeignKey('.Posting', on_delete=models.CASCADE)
+    posting = models.ForeignKey('postings.Posting', on_delete=models.CASCADE)
     content = models.CharField(max_length=350)
 
     class Meta:
         db_table = 'comments'
 
 class Image(models.Model):
-    posting   = models.ForeignKey('.Posting', on_delete=models.CASCADE)
+    posting   = models.ForeignKey('postings.Posting', on_delete=models.CASCADE)
     image_url = models.URLField(max_length=2000)
 
     class Meta:
@@ -44,11 +44,23 @@ class Image(models.Model):
 class Size(models.Model):
     name = models.CharField(max_length=50)
 
+    class Meta:
+        db_table = 'sizes'
+
 class Residence(models.Model):
     name = models.CharField(max_length=50)
+
+    class Meta:
+        db_table = 'residences'
 
 class Space(models.Model):
     name = models.CharField(max_length=50)
 
+    class Meta:
+        db_table = 'spaces'
+
 class Style(models.Model):
     name = models.CharField(max_length=50)
+
+    class Meta:
+        db_table = 'styles'
