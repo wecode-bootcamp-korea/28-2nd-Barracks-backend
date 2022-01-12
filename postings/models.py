@@ -3,9 +3,9 @@ from core.models import TimeStampModel
 
 class Posting(TimeStampModel):
     user      = models.ForeignKey('users.User', on_delete=models.CASCADE)
-    name      = models.CharField(max_length=50)
-    tags      = models.CharField(max_length=200)
-    content   = models.TextField(max_length=1500)
+    title     = models.CharField(max_length=100, null=True)
+    tags      = models.CharField(max_length=300, null=True)
+    content   = models.TextField(max_length=1500, null=True)
     hits      = models.IntegerField(default=0)
     size      = models.ForeignKey('postings.Size', on_delete=models.SET_NULL, null=True)
     residence = models.ForeignKey('postings.Residence', on_delete=models.SET_NULL, null=True)
@@ -16,7 +16,7 @@ class Posting(TimeStampModel):
         db_table = 'postings'
 
     def __str__(self):
-        return self.name
+        return self.title
 
 class Like(models.Model):
     user    = models.ForeignKey('users.User', on_delete=models.CASCADE)
