@@ -385,3 +385,5 @@ my_settings.py
 
 DB_barracks/
 db_uploader.py
+
+posting_data.csv

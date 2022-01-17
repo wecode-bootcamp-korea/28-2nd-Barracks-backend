@@ -53,7 +53,7 @@ class UserTest(TestCase):
                     }
                 } 
         mocked_requests.get = MagicMock(return_value = MockedResponse())
-        headers             = {"HTTP_Authotion" : "fake_access_token"}
+        headers             = {"HTTP_Authorizati" : "fake_access_token"}
         response            = client.get("/users/login", **headers)
 
         self.assertEqual(response.status_code, 400)
