@@ -24,7 +24,7 @@ class PostingView(View):
     # @login_required
     def post(self, request):
         try:
-            data = request.POST
+            data   = request.POST
             # user = request.user
             images = request.FILES.getlist('filename')
 
@@ -38,10 +38,6 @@ class PostingView(View):
                 tags         = data['tags'],
                 content      = data['content'],
             )
-
-            image = request.FILES['filename']
-            key   = str(uuid.uuid4())
-            images=[]
             
             for image in images:
                  
@@ -62,6 +58,21 @@ class PostingView(View):
                     image_url = image_url
                 )
             return JsonResponse({'message':'CREATE_SUCCESS'}, status = 201)
+
+        except Image.DoesNotExist:
+            return JsonResponse({'message':'Image required'}, status=400)
+ 
+        except Space.DoesNotExist:
+            return JsonResponse({'message':'Space required'}, status=400)
+ 
+        except Size.DoesNotExist:
+            return JsonResponse({'message':'Size required'}, status=400)
+ 
+        except Residence.DoesNotExist:
+            return JsonResponse({'message':'Residence required'}, status=400)
+ 
+        except Style.DoesNotExist:
+            return JsonResponse({'message':'Style required'}, status=400)
 
         except KeyError:
             return JsonResponse({'message' : 'KEY_ERROR'}, status = 400)
