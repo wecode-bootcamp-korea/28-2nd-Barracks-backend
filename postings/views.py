@@ -21,22 +21,22 @@ class PostingView(View):
         aws_secret_access_key = AWS_SECRET_ACCESS_KEY
     )
 
-    # @login_required
+    @login_decorator
     def post(self, request):
         try:
             data   = request.POST
-            # user = request.user
-            images = request.FILES.getlist('filename')
+            user = request.user
+            images = request.FILES.getlist('files')
 
             posting = Posting.objects.create(
-                user_id      = 1, #user.id
+                user_id      = user.id,
                 space_id     = Space.objects.get(id=data['space']).id,
-                size_id      = Size.objects.get(id=data['size']).id,
-                residence_id = Residence.objects.get(id=data['residence']).id,
-                style_id     = Style.objects.get(id=data['style']).id,
+                size_id      = data.get('size', None),
+                residence_id = data.get('residence', None),
+                style_id     = data.get('style', None),
                 title        = data['title'],
-                tags         = data['tags'],
-                content      = data['content'],
+                tags         = data.getlist('tags', None),
+                content      = data.get('content', None)
             )
             
             for image in images:
