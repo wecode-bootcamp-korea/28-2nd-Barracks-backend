@@ -13,7 +13,7 @@ import boto3
 from postings.models   import Posting, Image, Size, Space, Residence, Style
 from barracks.settings import AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_STORAGE_BUCKET_NAME
 
-class PostingView(View):
+class PostingListView(View):
 
     s3_client = boto3.client(
         's3',
@@ -24,13 +24,22 @@ class PostingView(View):
     @login_decorator
     def post(self, request):
         try:
+            '''
+            목적: DB에 posting 정보를 저장하는 것
+            어떤 것을 저장?
+                1. 제목, 내용, 필터, 테그, 이미지
+            주의 할 점
+                1. 이미지를 어디에 저장할 건지 -> s3에 저장을하고, boto3을 이용
+                2. 이미지와 포스팅 간의 관계 -> 이미지 : 포스팅 = N : 1
+                3. Transaction ->
+            '''
             data   = request.POST
-            user = request.user
+            user   = request.user
             images = request.FILES.getlist('files')
 
             posting = Posting.objects.create(
                 user_id      = user.id,
-                space_id     = Space.objects.get(id=data['space']).id,
+                space_id     = data['space'],
                 size_id      = data.get('size', None),
                 residence_id = data.get('residence', None),
                 style_id     = data.get('style', None),
@@ -55,7 +64,7 @@ class PostingView(View):
 
                 Image.objects.create(
                     posting_id = posting.id,
-                    image_url = image_url
+                    image_url  = image_url
                 )
             return JsonResponse({'message':'CREATE_SUCCESS'}, status = 201)
 
