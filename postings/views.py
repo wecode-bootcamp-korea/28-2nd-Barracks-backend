@@ -1,3 +1,4 @@
+from csv import unregister_dialect
 import json
 
 from django.http      import JsonResponse
@@ -7,6 +8,44 @@ from django.db.models import Q
 from postings.models       import Posting, Comment, Like
 from users.models          import User
 from utils.login_decorator import login_decorator
+
+class PostingListView(View):
+    def get(self, request):
+        try:
+            size_id      = request.GET.get('size_id', None)
+            residence_id = request.GET.get('residence_id', None)
+            space_id     = request.GET.get('space_id', None)
+            style_id     = request.GET.get('style_id', None)
+            offset       = int(request.GET.get('offset', 0))
+            limit        = int(request.GET.get('limit', 8))
+                       
+            q = Q()
+            
+            if size_id:
+                q &= Q(size__id = size_id)
+                
+            if residence_id:
+                q &= Q(residence__id = residence_id)
+                
+            if space_id:
+                q &= Q(space__id = space_id)
+                
+            if style_id:
+                q &= Q(style__id = style_id)
+            
+            results = [{
+                'posting_id'    : posting.id,
+                'content'       : posting.content,
+                'like_count'    : posting.like_set.all().filter(is_like=True).count(),
+                'comment_count' : posting.comment_set.all().count(),
+                'image_url'     : posting.image_set.all().first().image_url if posting.image_set.all().first() else None,
+                'user_name'     : posting.user.nickname,
+                'user_image'    : posting.user.profile_image_url
+            } for posting in Posting.objects.filter(q).order_by('created_at')[offset:offset+limit]]
+            return JsonResponse({'results' : results}, status = 200)
+        
+        except KeyError:
+            return JsonResponse({'message' : "KEY_ERROR"}, status = 400)      
 
 class PostingDeatilView(View):
     def get(self, request, posting_id):
@@ -37,6 +76,51 @@ class PostingDeatilView(View):
         
         except Posting.DoesNotExist:
             return JsonResponse({'message' : 'POSTING_DOESNOT_EXIST'}, status=404)
+        
+class CommentView(View):
+    @login_decorator
+    def post(self, request, posting_id):
+        try:
+            data = json.loads(request.body)
+            
+            Comment.objects.create(
+                content    = data['content'],
+                posting_id = posting_id,
+                user_id    = request.user.id
+            )
+            return JsonResponse({'result' : 'created'}, status=201)
+        except KeyError:
+            return JsonResponse({'message' : 'KEY_ERROR'}, status=401)
+        
+    def get(self, request, posting_id):
+        offset = int(request.GET.get('offset', 0))
+        limit  = int(request.GET.get('limit', 5))
+        posting = Posting.objects.get(id = posting_id)
+        
+        result = {
+            'comments_totals' : posting.comment_set.all().count(),
+            'comments' : [{
+                'id'         : comment.id,
+                'nickname'   : comment.user.nickname,
+                'user_image' : comment.user.profile_image_url,
+                'content'    : comment.content
+            } for comment in Comment.objects.filter(posting_id=posting_id).order_by('-created_at')[offset:offset+limit]]
+        }
+            
+        return JsonResponse({'result' : result}, status=200)
+    
+    @login_decorator
+    def delete(self, request, posting_id, comment_id):
+        try:
+            user_id    = request.user.id
+            
+            comment = Comment.objects.get(id = comment_id, user_id = user_id, posting_id = posting_id)
+            comment.delete()
+            
+            return JsonResponse({'message' : 'SUCCESS_DELETE'}, status=204)
+        
+        except Comment.DoesNotExist:
+            return JsonResponse({'message' : 'COMMENT_DOESNOT_EXIST'}, status=404)
 
 class PostingLikeView(View):
     @login_decorator
