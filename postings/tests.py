@@ -1,6 +1,7 @@
 import json
 from unittest import result
 from urllib import request
+from wsgiref import headers
 import jwt
 
 from django.test     import TestCase, Client
@@ -9,20 +10,18 @@ from postings.models import Posting, Space, Size, Residence, Style, Image, Comme
 from users.models    import User
 from my_settings     import SECRET_KEY, ALGORITHM
 
-
-
 class PostingDetailTest(TestCase):
     def setUp(self):
         self.client = Client()
         
         User.objects.create(
-            kakao_id          = 123,
             id                = 1,
+            kakao_id          = 123,
             email             = 'abc@ab.com',
             nickname          = 'kk',
             profile_image_url = 'aaa.jpg'
         )
-
+        
         Space.objects.create(
             id   = 1,
             name = 'A'
@@ -93,6 +92,7 @@ class PostingDetailTest(TestCase):
             'style'      : '빈티지',
             'hits'       : 1,
             'image_urls' : [{'image_id': 1, 'image_url': 'url1'}],
+            'like_count' : 0,
             'user_name'  : 'kk',
             'user_image' : 'aaa.jpg'
         }
@@ -108,6 +108,132 @@ class PostingDetailTest(TestCase):
                 'message' : 'POSTING_DOESNOT_EXIST'
             }
         )
+        self.assertEqual(response.status_code, 404)
+
+class CommentTest(TestCase):
+    def setUp(self):
+        self.token = jwt.encode({'id' : 1}, SECRET_KEY, ALGORITHM)
+        User.objects.create(
+            id                = 1,
+            kakao_id          = 11,
+            email             = 'test1@test1.com',
+            nickname          = 'test1',
+            profile_image_url = 'test.jpg'
+        )
+        Space.objects.create(
+            id   = 1,
+            name = 'A'
+        )
+
+        Size.objects.create(
+            id   = 1,
+            name = '10평'
+        )
+
+        Residence.objects.create(
+            id   = 1,
+            name = '아파트'
+        )
+
+        Style.objects.create(
+            id   = 1,
+            name = '빈티지'
+        )
+        
+        Posting.objects.create(
+            id           = 1,
+            title        = 'title 1 입니다',
+            content      = 'posting 1 desc',
+            tags         = '#갬성,#인테리어',
+            space_id     = 1,
+            size_id      = 1,
+            residence_id = 1,
+            style_id     = 1,
+            hits         = 0,
+            user_id      = 1
+        )
+        
+        Image.objects.create(
+            id         = 1,
+            posting_id = 1,
+            image_url  = 'url1.jpg'
+        )        
+        
+        Comment.objects.create(
+            id         = 1,
+            content    = 'test1',
+            user_id    = 1,
+            posting_id = 1
+        )
+        
+    def tearDown(self):
+        User.objects.all().delete()
+        Space.objects.all().delete()
+        Style.objects.all().delete()
+        Residence.objects.all().delete()
+        Size.objects.all().delete()
+        Posting.objects.all().delete()
+        Image.objects.all().delete()
+        Comment.objects.all().delete()
+        
+    def test_comment_post_success(self):
+        client = Client()
+        header = {'HTTP_Authorization' : self.token}
+        
+        result = {
+            'id' : 1,
+            'user_id' : 1,
+            'posting_id' : 1,
+            'content' : 'test1'
+        }
+        
+        response = client.post('/postings/1/comments',json.dumps(result), **header, content_type='application/json')
+        self.assertEqual(response.json(), {'result' : 'created'})
+        self.assertEqual(response.status_code, 201)
+
+    def test_review_view_test_post_key_error(self):
+        client  = Client()
+        headers = {'HTTP_Authorization' : self.token}
+
+        result = {
+            'failure' : 111111,
+            'error'   : 11111
+        }
+    
+        response = client.post('/postings/1/comments', json.dumps(result), content_type='application/json', **headers)
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json(), {'message' : 'KEY_ERROR'})
+    
+    def test_comment_get_success(self):
+        client = Client()
+        response = client.get('/postings/1/comments')
+        
+        result = {
+            'comments_totals' : 1,
+            'comments' : [{
+                'id'         : 1,
+                'nickname'   : 'test1',
+                'user_image' : 'test.jpg',
+                'content'    : 'test1'
+        }]}
+
+        self.assertEqual(response.json(),{'result': result})
+        self.assertEqual(response.status_code, 200)
+        
+    def test_comment_delete_success(self): 
+        client = Client()
+        header = {'HTTP_Authorization' : self.token}
+                
+        response = client.delete("/postings/1/comments/1", **header)
+        
+        self.assertEqual(response.status_code, 204)        
+        
+    def test_comment_delete_doesnotexist(self): 
+        client = Client()
+        header = {"HTTP_Authorization" : self.token}
+
+        response = client.delete('/postings/1/comments/500',**header)
+       
         self.assertEqual(response.status_code, 404)
 
 class PostingLikeTest(TestCase):
