@@ -470,3 +470,83 @@ class PostingLikeTest(TestCase):
 
         self.assertEqual(response.json(), {'result' : result})
         self.assertEqual(response.status_code, 200)
+        
+class PostingListTest(TestCase):
+    def setUp(self):        
+        User.objects.create(
+            id                = 1,
+            kakao_id          = 123,
+            email             = 'abc@ab.com',
+            nickname          = 'kk',
+            profile_image_url = 'aaa.jpg'
+        )
+        
+        Space.objects.create(
+            id   = 1,
+            name = 'A'
+        )
+        
+        Size.objects.create(
+            id   = 1,
+            name = '10평'
+        )
+        
+        Residence.objects.create(
+            id   = 1,
+            name = '아파트'
+        )
+        
+        Style.objects.create(
+            id   = 1,
+            name = '빈티지'
+        )
+        
+        Posting.objects.create(
+            id           = 1,
+            title        = 'title 1 입니다',
+            content      = 'posting 1 desc',
+            tags         = '#갬성,#인테리어',
+            space_id     = 1,
+            size_id      = 1,
+            residence_id = 1,
+            style_id     = 1,
+            hits         = 0,
+            user_id      = 1
+        )
+        
+        Comment.objects.create(
+            content    = 'comment content 1',
+            posting_id = 1,
+            user_id    = 1
+        )
+        
+        Image.objects.create(
+            id         = 1,
+            posting_id = 1,
+            image_url  = 'url1'
+        )
+        
+    def tearDown(self):
+        User.objects.all().delete()
+        Space.objects.all().delete()
+        Style.objects.all().delete()
+        Residence.objects.all().delete()
+        Size.objects.all().delete()
+        Posting.objects.all().delete()
+        Image.objects.all().delete()
+    
+    def test_success_posting_list_view(self):
+        client = Client()
+        response = client.get('/postings')
+        
+        results = [{
+            'posting_id'    : 1,
+            'content'       : 'posting 1 desc',
+            'like_count'    : 0,
+            'comment_count' : 1,
+            'image_url'     : 'url1',
+            'user_name'     : 'kk',
+            'user_image'    : 'aaa.jpg'
+            }]     
+        self.assertEqual(response.json(), {'results' : results})
+        self.assertEqual(response.status_code, 200)
