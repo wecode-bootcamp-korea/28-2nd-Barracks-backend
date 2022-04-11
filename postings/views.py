@@ -21,7 +21,7 @@ class PostingListView(View):
             style_id     = request.GET.get('style_id', None)
             offset       = int(request.GET.get('offset', 0))
             limit        = int(request.GET.get('limit', 8))
-                       
+
             q = Q()
             
             if size_id:
@@ -57,7 +57,7 @@ class PostingListView(View):
             data  = request.POST
             user  = request.user
             files = request.FILES.getlist('files')
-          
+
             if not files:
                 return JsonResponse({'message' : 'IMAGE_REQUIRED'}, status=400)
 
@@ -80,7 +80,7 @@ class PostingListView(View):
                 )
             
             return JsonResponse({'message' : 'CREATE_SUCCESS', 'results' : {"post_id" : posting.id}}, status = 201)
-         
+
         except KeyError:
             return JsonResponse({'message' : 'KEY_ERROR'}, status = 400)      
 
