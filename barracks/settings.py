@@ -36,7 +36,6 @@ INSTALLED_APPS = [
     'users',
     'postings',
     'core',
-    'storages'
 ]
 
 MIDDLEWARE = [
